@@ -1,0 +1,471 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Sun Match</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600&family=Barlow+Semi+Condensed:wght@500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#ECEDEF; --surface:#FFFFFF; --ink:#16171A; --ink-2:#5B5F67; --line:#D3D6DB;
+  --control:#E1E3E7; --control-on:#16171A; --control-on-ink:#FFFFFF;
+  --finder:#000000; --finder-ink:#FFFFFF;
+  --sans:"Barlow","Helvetica Neue",Arial,sans-serif;
+  --cond:"Barlow Semi Condensed","Barlow","Arial Narrow","Helvetica Neue",Arial,sans-serif;
+  color-scheme:light;
+  box-sizing:border-box;
+  padding-top:env(safe-area-inset-top,0px);
+  padding-bottom:env(safe-area-inset-bottom,0px);
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#1A1B1E; --surface:#232428; --ink:#ECECE8; --ink-2:#989CA4; --line:#36383D;
+    --control:#2E3035; --control-on:#ECECE8; --control-on-ink:#1A1B1E;
+    color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#1A1B1E; --surface:#232428; --ink:#ECECE8; --ink-2:#989CA4; --line:#36383D;
+  --control:#2E3035; --control-on:#ECECE8; --control-on-ink:#1A1B1E;
+  color-scheme:dark;
+}
+*,*::before,*::after{box-sizing:inherit}
+html{height:100%;scroll-padding-top:env(safe-area-inset-top,0px)}
+body{height:100%;margin:0;background:var(--bg);color:var(--ink);font-family:var(--sans);font-size:16px;line-height:1.4;-webkit-text-size-adjust:100%}
+button,input{font:inherit;color:inherit}
+:focus-visible{outline:2px solid var(--ink);outline-offset:2px}
+
+.app{display:flex;flex-direction:column;height:100%;max-width:560px;margin:0 auto;background:var(--bg)}
+
+/* Viewfinder */
+.finder{position:relative;flex:0 0 46%;min-height:250px;background:var(--finder);color:var(--finder-ink);overflow:hidden}
+.finder video{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;display:none}
+.finder.has-cam video{display:block}
+.cross{position:absolute;left:50%;top:50%;width:96px;height:96px;transform:translate(-50%,-50%);display:none;filter:drop-shadow(0 0 1.5px rgba(0,0,0,.9))}
+.finder.has-cam .cross{display:block}
+.edge-hint{position:absolute;left:50%;top:18px;transform:translateX(-50%);display:none;flex-direction:column;align-items:center;gap:6px;text-align:center;font-size:14px;color:#D9DADD;max-width:70%}
+.finder.edge .edge-hint{display:flex}
+.readout{position:absolute;left:18px;bottom:16px;text-shadow:0 1px 3px rgba(0,0,0,.8)}
+.readout .deg{font-family:var(--cond);font-weight:600;font-size:64px;line-height:.9;font-variant-numeric:tabular-nums;letter-spacing:-.01em}
+.readout .sub{font-size:14px;color:#D2D4D8;margin-top:6px}
+.readout .held[hidden]{display:none}
+.readout .held{display:inline-block;margin-left:8px;padding:1px 8px;border-radius:999px;background:#FFFFFF;color:#000;font-size:13px;font-weight:600;text-shadow:none;vertical-align:2px}
+
+/* Elevation tape: the one bold element, coloured by the model */
+.tape{position:absolute;right:14px;top:16px;bottom:16px;width:52px}
+.tape .bar{position:absolute;right:0;top:0;bottom:0;width:10px;border-radius:5px}
+.tape .tick{position:absolute;right:16px;transform:translateY(50%);font-family:var(--cond);font-size:13px;color:#C9CBD0;font-variant-numeric:tabular-nums;text-shadow:0 1px 2px rgba(0,0,0,.9)}
+.tape .mark{position:absolute;right:-4px;width:18px;height:18px;transform:translateY(50%);border-radius:50%;border:3px solid #FFFFFF;box-shadow:0 0 0 1px rgba(0,0,0,.6),0 1px 4px rgba(0,0,0,.6)}
+
+.start{position:absolute;inset:0;display:flex;flex-direction:column;justify-content:center;gap:14px;padding:24px 84px 24px 22px;background:var(--finder)}
+.start p{margin:0;font-size:17px;line-height:1.35;color:#E6E7EA;max-width:30ch}
+.start .note{font-size:14px;color:#A9ACB2}
+.btn-primary{align-self:flex-start;border:0;border-radius:10px;padding:12px 18px;background:#FFFFFF;color:#000;font-weight:600;font-size:16px}
+.btn-text{align-self:flex-start;border:0;background:none;padding:4px 0;color:#D9DADD;text-decoration:underline;text-underline-offset:3px;font-size:15px}
+.status{position:absolute;left:18px;right:84px;top:16px;font-size:14px;color:#E6E7EA;text-shadow:0 1px 3px rgba(0,0,0,.8)}
+
+/* Panel */
+.panel{flex:1 1 auto;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:14px 18px 28px}
+.row{display:flex;align-items:center;gap:10px}
+.seg{display:inline-flex;background:var(--control);border-radius:10px;padding:3px;gap:2px}
+.seg button{border:0;background:none;padding:7px 12px;border-radius:8px;font-size:15px;font-weight:500;color:var(--ink-2)}
+.seg button[aria-pressed="true"]{background:var(--control-on);color:var(--control-on-ink)}
+.hold{margin-left:auto;border:1px solid var(--line);background:var(--surface);border-radius:10px;padding:7px 14px;font-weight:600;font-size:15px}
+.hold[aria-pressed="true"]{background:var(--control-on);color:var(--control-on-ink);border-color:var(--control-on)}
+.hold[hidden]{display:none}
+.manual{margin-top:12px;display:none;align-items:center;gap:10px}
+.manual.on{display:flex}
+.manual input[type=range]{flex:1;accent-color:var(--ink)}
+.step{width:40px;height:36px;border:1px solid var(--line);background:var(--surface);border-radius:8px;font-size:20px;line-height:1}
+
+.light{display:grid;grid-template-columns:52px 1fr;gap:4px 14px;align-items:center;padding:16px 0;border-bottom:1px solid var(--line)}
+.light:first-of-type{margin-top:6px}
+.swatch{grid-row:1 / span 3;width:52px;height:52px;border-radius:50%;box-shadow:inset 0 0 0 1px rgba(0,0,0,.18)}
+.light .name{font-size:14px;color:var(--ink-2)}
+.light .k{font-family:var(--cond);font-weight:600;font-size:40px;line-height:1;font-variant-numeric:tabular-nums}
+.light.fill .k{font-size:30px}
+.light .set{font-size:15px}
+.ratio{display:flex;align-items:baseline;gap:12px;padding:16px 0;border-bottom:1px solid var(--line)}
+.ratio .v{font-family:var(--cond);font-weight:600;font-size:34px;font-variant-numeric:tabular-nums;line-height:1}
+.ratio .d{font-size:15px;color:var(--ink-2)}
+.warn{font-size:14px;color:var(--ink-2);padding-top:10px}
+.warn:empty{display:none}
+
+.block{padding:18px 0;border-bottom:1px solid var(--line)}
+.block h2{margin:0 0 10px;font-size:15px;font-weight:600}
+.meter{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.meter input{width:120px;padding:9px 10px;border:1px solid var(--line);border-radius:8px;background:var(--surface);font-variant-numeric:tabular-nums;font-size:17px}
+.target{margin-top:10px;font-size:16px}
+.target b{font-family:var(--cond);font-size:22px;font-weight:600;font-variant-numeric:tabular-nums}
+.cond-desc{margin-top:8px;font-size:14px;color:var(--ink-2)}
+.seg.wide{display:flex}
+.seg.wide button{flex:1}
+
+details{padding:14px 0;border-bottom:1px solid var(--line)}
+summary{cursor:pointer;font-weight:600;font-size:15px}
+details p{margin:10px 0 0;font-size:15px;color:var(--ink-2);max-width:62ch}
+.range{display:flex;align-items:center;gap:8px;margin-top:10px;font-size:15px}
+.range input{width:84px;padding:7px 8px;border:1px solid var(--line);border-radius:8px;background:var(--surface);font-variant-numeric:tabular-nums}
+.ref{font-variant-numeric:tabular-nums}
+@media (min-height:820px){.finder{flex-basis:50%}}
+</style>
+</head>
+<body>
+<div class="app">
+  <section class="finder" id="finder" aria-label="Viewfinder">
+    <video id="cam" playsinline muted autoplay></video>
+    <svg class="cross" viewBox="0 0 96 96" aria-hidden="true">
+      <circle cx="48" cy="48" r="20" fill="none" stroke="#fff" stroke-width="1.5"/>
+      <line x1="48" y1="0" x2="48" y2="22" stroke="#fff" stroke-width="1.5"/>
+      <line x1="48" y1="74" x2="48" y2="96" stroke="#fff" stroke-width="1.5"/>
+      <line x1="0" y1="48" x2="22" y2="48" stroke="#fff" stroke-width="1.5"/>
+      <line x1="74" y1="48" x2="96" y2="48" stroke="#fff" stroke-width="1.5"/>
+      <circle cx="48" cy="48" r="1.6" fill="#fff"/>
+    </svg>
+    <div class="edge-hint">
+      <svg width="28" height="34" viewBox="0 0 28 34" aria-hidden="true"><path d="M14 2 L14 32 M4 12 L14 2 L24 12" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      <span>Point the top edge of the phone at the fixture</span>
+    </div>
+    <div class="status" id="status" role="status"></div>
+    <div class="readout">
+      <div class="deg" id="deg">30.0°</div>
+      <div class="sub"><span id="degSub">above level</span><span class="held" id="heldTag" hidden>Held</span></div>
+    </div>
+    <div class="tape" id="tape" aria-hidden="true"><div class="bar" id="bar"></div><div class="mark" id="mark"></div></div>
+    <div class="start" id="start">
+      <p>Stand where your subject is and aim the crosshair at the fixture playing the sun.</p>
+      <button class="btn-primary" id="go">Start camera and tilt</button>
+      <button class="btn-text" id="goManual">Enter an angle instead</button>
+      <p class="note">Your phone will ask for camera and motion access.</p>
+    </div>
+  </section>
+
+  <section class="panel">
+    <div class="row">
+      <div class="seg" role="group" aria-label="Angle source">
+        <button id="mTilt" aria-pressed="false">Tilt</button>
+        <button id="mManual" aria-pressed="false">By hand</button>
+      </div>
+      <button class="hold" id="hold" aria-pressed="false" hidden>Hold</button>
+    </div>
+    <div class="manual" id="manual">
+      <button class="step" id="minus" aria-label="Lower one degree">−</button>
+      <input type="range" id="slider" min="0" max="90" step="0.5" value="30" aria-label="Sun elevation in degrees">
+      <button class="step" id="plus" aria-label="Raise one degree">+</button>
+    </div>
+
+    <div class="light sun">
+      <div class="swatch" id="sunSw"></div>
+      <div class="name">Sun</div>
+      <div class="k" id="sunK">–</div>
+      <div class="set" id="sunSet"></div>
+    </div>
+    <div class="light fill">
+      <div class="swatch" id="fillSw"></div>
+      <div class="name">Open shade</div>
+      <div class="k" id="fillK">–</div>
+      <div class="set" id="fillSet"></div>
+    </div>
+    <div class="ratio">
+      <div class="v" id="stops">–</div>
+      <div class="d">Sun side over shade side</div>
+    </div>
+    <div class="warn" id="warn"></div>
+
+    <div class="block">
+      <h2>Match it with your meter</h2>
+      <div class="meter">
+        <label for="fillIn" class="sr">Shade-side reading</label>
+        <input id="fillIn" type="number" inputmode="decimal" min="0" placeholder="Shade side">
+        <div class="seg" role="group" aria-label="Units">
+          <button id="uLux" aria-pressed="true">lux</button>
+          <button id="uFc" aria-pressed="false">fc</button>
+        </div>
+      </div>
+      <div class="target" id="target">Meter the shade side of the subject, then enter it here.</div>
+    </div>
+
+    <div class="block">
+      <h2>Conditions</h2>
+      <div class="seg wide" role="group" aria-label="Conditions" id="conds"></div>
+      <div class="cond-desc" id="condDesc"></div>
+    </div>
+
+    <details>
+      <summary>On a real day like this</summary>
+      <p class="ref" id="ref"></p>
+    </details>
+    <details>
+      <summary>Fixture range</summary>
+      <p>Gel suggestions appear when a target falls outside what the fixture can dial in.</p>
+      <div class="range">
+        <input id="fMin" type="number" inputmode="numeric" aria-label="Lowest Kelvin"> to
+        <input id="fMax" type="number" inputmode="numeric" aria-label="Highest Kelvin"> K
+      </div>
+    </details>
+    <details>
+      <summary>How this is calculated</summary>
+      <p>The sun starts as a roughly 5,900K source above the atmosphere. At lower angles its light passes through more air, which scatters blue out of the beam and warms it. Haze adds more scattering and also brightens the sky. Open shade is skylight plus light bounced off average ground (15% reflectance), measured on the side facing away from the sun.</p>
+      <p>Values assume sea level and are rounded to 50K. Treat them as a starting point: real days vary, most of all within 5° of the horizon. Swatches show each colour as a camera balanced at 5,600K would see it.</p>
+    </details>
+  </section>
+</div>
+<style>.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}</style>
+<script>
+// ---- Sun/sky spectral model ----
+const L = []; for (let l = 380; l <= 780; l += 5) L.push(l);
+function g(x, mu, s1, s2) { const s = x < mu ? s1 : s2; const t = (x - mu) / s; return Math.exp(-0.5 * t * t); }
+const CMF = L.map(l => [
+  1.056 * g(l, 599.8, 37.9, 31.0) + 0.362 * g(l, 442.0, 16.0, 26.7) - 0.065 * g(l, 501.1, 20.4, 26.2),
+  0.821 * g(l, 568.8, 46.9, 40.5) + 0.286 * g(l, 530.9, 16.3, 31.1),
+  1.217 * g(l, 437.0, 11.8, 36.0) + 0.681 * g(l, 459.0, 26.0, 13.8)]);
+function planck(l, T) { const m = l * 1e-9; return 1 / (Math.pow(m, 5) * (Math.exp(1.4388e-2 / (m * T)) - 1)); }
+function XYZ(s) { let X = 0, Y = 0, Z = 0; for (let i = 0; i < L.length; i++) { X += s[i] * CMF[i][0]; Y += s[i] * CMF[i][1]; Z += s[i] * CMF[i][2]; } return [X, Y, Z]; }
+function uv([X, Y, Z]) { const d = X + 15 * Y + 3 * Z; return [4 * X / d, 6 * Y / d]; }
+const LOCUS = []; for (let mired = 1; mired <= 1000; mired += 0.5) { const T = 1e6 / mired; LOCUS.push([T, ...uv(XYZ(L.map(l => planck(l, T))))]); }
+function cct(xyz) { const [u, v] = uv(xyz); let best = LOCUS[0], bd = 1e9; for (const p of LOCUS) { const d = (p[1] - u) ** 2 + (p[2] - v) ** 2; if (d < bd) { bd = d; best = p; } } return best[0]; }
+const ET_T = 5900, ET_LUX = 128000;
+let E0 = L.map(l => planck(l, ET_T)); { const k = ET_LUX / XYZ(E0)[1]; E0 = E0.map(e => e * k); }
+const OPT = L.map(l => { const u = l / 1000; return {
+  tr: 0.008569 * u ** -4 * (1 + 0.0113 * u ** -2 + 0.00013 * u ** -4),
+  to: 0.3 * 0.14 * Math.exp(-0.5 * ((u - 0.603) / 0.055) ** 2), u }; });
+const PRESETS = {
+  crisp: { label: 'Crisp', aod: 0.05, alpha: 1.3, omega: 0.93 },
+  clear: { label: 'Clear', aod: 0.12, alpha: 1.3, omega: 0.93 },
+  hazy:  { label: 'Hazy',  aod: 0.30, alpha: 1.3, omega: 0.92 },
+  smoky: { label: 'Smoky', aod: 0.50, alpha: 1.6, omega: 0.90 } };
+const RHO = 0.15, SHADE_SKY = 0.4, G = 0.65;
+function solve(h, p) {
+  h = Math.min(90, Math.max(0.5, h));
+  const hr = h * Math.PI / 180, cz = Math.sin(hr);
+  const m = 1 / (cz + 0.50572 * Math.pow(h + 6.07995, -1.6364));
+  const czz = Math.cos(Math.PI / 2 - hr), R = 22 / 6370;
+  const mo = (1 + R) / Math.sqrt(czz * czz + 2 * R);
+  const beta = p.aod * Math.pow(0.55, p.alpha);
+  const ALG = Math.log(1 - G);
+  const AFS = ALG * (1.459 + ALG * (0.1595 + ALG * 0.4129)), BFS = ALG * (0.0783 + ALG * (-0.3824 - ALG * 0.5874));
+  const Fs = 1 - 0.5 * Math.exp((AFS + BFS * cz) * cz);
+  const dn = [], dh = [], fill = [];
+  for (let i = 0; i < L.length; i++) {
+    const o = OPT[i], e = E0[i], ta = beta * Math.pow(o.u, -p.alpha);
+    const TR = Math.exp(-o.tr * m), Ta = Math.exp(-ta * m), To = Math.exp(-o.to * mo);
+    const Taa = Math.exp(-(1 - p.omega) * ta * m), Tas = Math.exp(-p.omega * ta * m);
+    const d = e * TR * Ta * To;
+    const s = e * cz * To * Taa * ((1 - Math.pow(TR, 0.95)) * 0.5 + Math.pow(TR, 1.5) * (1 - Tas) * Fs);
+    dn.push(d); dh.push(s); fill.push(SHADE_SKY * s + 0.5 * RHO * (d * cz + s));
+  }
+  const sunXYZ = XYZ(dn), fillXYZ = XYZ(fill);
+  const sunLux = sunXYZ[1], fillLux = fillXYZ[1];
+  return { h, sunK: cct(sunXYZ), fillK: cct(fillXYZ), sunXYZ, fillXYZ, sunLux, fillLux,
+    ratio: (sunLux + fillLux) / fillLux, stops: Math.log2((sunLux + fillLux) / fillLux) };
+}
+// ---- Colour for swatches: as seen by a camera balanced at 5,600K ----
+const MB = [[0.8951,0.2664,-0.1614],[-0.7502,1.7135,0.0367],[0.0389,-0.0685,1.0296]];
+const MBi = [[0.9869929,-0.1470543,0.1599627],[0.4323053,0.5183603,0.0492912],[-0.0085287,0.0400428,0.9684867]];
+const mul = (M, v) => M.map(r => r[0]*v[0] + r[1]*v[1] + r[2]*v[2]);
+const WB = (() => { const w = XYZ(L.map(l => planck(l, 5600))); return w.map(c => c / w[1]); })();
+const D65 = [0.95047, 1, 1.08883];
+const CS = mul(MB, WB), CD = mul(MB, D65);
+function toCss(xyz) {
+  const n = xyz.map(c => c / xyz[1]);
+  const c = mul(MB, n).map((v, i) => v * CD[i] / CS[i]);
+  let rgb = mul([[3.2406,-1.5372,-0.4986],[-0.9689,1.8758,0.0415],[0.0557,-0.2040,1.0570]], mul(MBi, c));
+  rgb = rgb.map(v => Math.max(0, v)); const mx = Math.max(...rgb) || 1;
+  rgb = rgb.map(v => { v /= mx; return Math.round(255 * (v <= 0.0031308 ? 12.92 * v : 1.055 * Math.pow(v, 1 / 2.4) - 0.055)); });
+  return `rgb(${rgb.join(',')})`;
+}
+
+// ---- Gels ----
+const CTO = [['⅛ CTO', 20], ['¼ CTO', 42], ['½ CTO', 81], ['¾ CTO', 131], ['Full CTO', 159]];
+const CTB = [['⅛ CTB', -12], ['¼ CTB', -30], ['½ CTB', -68], ['Full CTB', -131]];
+function gelFor(shift, list) {
+  const c = list.map(g => ({ name: g[0], s: g[1], n: 1 }));
+  for (let i = 0; i < list.length; i++) for (let j = i; j < list.length; j++)
+    c.push({ name: i === j ? '2× ' + list[i][0] : list[j][0] + ' + ' + list[i][0], s: list[i][1] + list[j][1], n: 2 });
+  c.sort((a, b) => (Math.abs(a.s - shift) + (a.n - 1) * 8) - (Math.abs(b.s - shift) + (b.n - 1) * 8));
+  return c[0];
+}
+const fmtK = k => k < 1200 ? 'below 1,200K' : (Math.round(k / 50) * 50).toLocaleString('en-US') + 'K';
+function advice(k) {
+  const lo = state.fMin, hi = state.fMax;
+  if (k < lo) {
+    const shift = 1e6 / k - 1e6 / lo;
+    if (shift < 10) return `Set ${fmtK(lo)}, close enough`;
+    const g = gelFor(shift, CTO);
+    return `Set ${fmtK(lo)} + ${g.name} (≈${fmtK(1e6 / (1e6 / lo + g.s))})`;
+  }
+  if (k > hi) {
+    const shift = 1e6 / k - 1e6 / hi;
+    if (shift > -8) return `Set ${fmtK(hi)}, close enough`;
+    const g = gelFor(shift, CTB);
+    return `Set ${fmtK(hi)} + ${g.name} (≈${fmtK(1e6 / (1e6 / hi + g.s))})`;
+  }
+  return `Set ${fmtK(k)}`;
+}
+
+// ---- State ----
+const $ = id => document.getElementById(id);
+const store = {
+  get(k, d) { try { const v = localStorage.getItem('sunmatch:' + k); return v == null ? d : JSON.parse(v); } catch (e) { return d; } },
+  set(k, v) { try { localStorage.setItem('sunmatch:' + k, JSON.stringify(v)); } catch (e) {} }
+};
+const state = {
+  mode: 'idle', sight: 'camera', elev: store.get('elev', 30), raw: null, held: false,
+  preset: store.get('preset', 'clear'), fMin: store.get('fMin', 2700), fMax: store.get('fMax', 6500),
+  unit: store.get('unit', 'lux'), reading: ''
+};
+if (!PRESETS[state.preset]) state.preset = 'clear';
+const DESC = {
+  crisp: 'Deep blue sky, distant hills sharp. After rain or during Santa Anas.',
+  clear: 'An ordinary sunny day with a little haze on the horizon.',
+  hazy: 'Pale, milky sky. Summer smog or a marine layer burning off.',
+  smoky: 'Wildfire smoke in the air. The sun looks orange well before sunset.'
+};
+
+// ---- Tape ----
+const tape = $('tape');
+[0, 15, 30, 45, 60, 75, 90].forEach(d => {
+  const t = document.createElement('div'); t.className = 'tick'; t.textContent = d + '°';
+  t.style.bottom = (d / 90 * 100) + '%'; tape.appendChild(t);
+});
+function paintTape() {
+  const stops = [];
+  for (let d = 0; d <= 90; d += 3) stops.push(`${toCss(solve(Math.max(d, 1), PRESETS[state.preset]).sunXYZ)} ${(d / 90 * 100).toFixed(1)}%`);
+  $('bar').style.background = `linear-gradient(to top, ${stops.join(',')})`;
+}
+
+// ---- Render ----
+let pending = false;
+function schedule() { if (!pending) { pending = true; requestAnimationFrame(render); } }
+function render() {
+  pending = false;
+  const e = state.elev, below = e < 0;
+  $('deg').textContent = (Math.round(e * 10) / 10).toFixed(1) + '°';
+  $('degSub').textContent = below ? 'below level' : 'above level';
+  const r = solve(e, PRESETS[state.preset]);
+  const sunCss = toCss(r.sunXYZ);
+  $('mark').style.bottom = (Math.min(90, Math.max(0, e)) / 90 * 100) + '%';
+  $('mark').style.background = sunCss;
+  $('sunSw').style.background = sunCss;
+  $('fillSw').style.background = toCss(r.fillXYZ);
+  $('sunK').textContent = fmtK(r.sunK);
+  $('fillK').textContent = fmtK(r.fillK);
+  $('sunSet').textContent = advice(r.sunK);
+  $('fillSet').textContent = advice(r.fillK);
+  $('stops').textContent = r.stops.toFixed(1) + (Math.abs(r.stops - 1) < 0.05 ? ' stop' : ' stops');
+  let w = '';
+  if (below) w = 'The fixture is below the subject’s eye line. A real sun can’t light from there, so values are shown for the horizon.';
+  else if (r.stops < 0.5) w = 'At this angle in these conditions the sun barely casts a shadow. The scene is mostly skylight.';
+  else if (e < 5) w = 'Within 5° of the horizon, real days vary a lot. Trust your eye over these numbers.';
+  $('warn').textContent = w;
+  const u = state.unit, f = u === 'fc' ? 1 / 10.764 : 1;
+  const fmtL = v => { v *= f; const p = v >= 100 ? Number(v.toPrecision(2)) : Math.round(v); return p.toLocaleString('en-US'); };
+  $('ref').textContent = `Sun side ≈ ${fmtL(r.sunLux + r.fillLux)} ${u}, shade side ≈ ${fmtL(r.fillLux)} ${u}. You won’t need to hit these indoors; the ratio between them is what sells it.`;
+  const rd = parseFloat(state.reading);
+  if (rd > 0) {
+    const t = rd * r.ratio, p = t >= 100 ? Number(t.toPrecision(2)) : Math.round(t * 10) / 10;
+    $('target').innerHTML = `Aim for about <b>${p.toLocaleString('en-US')} ${u}</b> on the sun side, dome pointed at the fixture.`;
+  } else $('target').textContent = 'Meter the shade side of the subject, then enter it here.';
+}
+
+// ---- Controls ----
+function setMode(m) {
+  state.mode = m;
+  $('mTilt').setAttribute('aria-pressed', m === 'tilt');
+  $('mManual').setAttribute('aria-pressed', m === 'manual');
+  $('manual').classList.toggle('on', m === 'manual');
+  $('hold').hidden = m !== 'tilt';
+  if (m !== 'tilt') setHeld(false);
+  if (m === 'manual') { $('slider').value = Math.min(90, Math.max(0, state.elev)); $('start').style.display = 'none'; }
+  schedule();
+}
+function setHeld(h) {
+  state.held = h; $('hold').setAttribute('aria-pressed', h); $('hold').textContent = h ? 'Release' : 'Hold';
+  $('heldTag').hidden = !h;
+}
+function setManual(v) { state.elev = Math.min(90, Math.max(0, v)); $('slider').value = state.elev; store.set('elev', state.elev); schedule(); }
+$('slider').addEventListener('input', e => setManual(parseFloat(e.target.value)));
+$('minus').addEventListener('click', () => setManual(Math.round(state.elev) - 1));
+$('plus').addEventListener('click', () => setManual(Math.round(state.elev) + 1));
+$('hold').addEventListener('click', () => setHeld(!state.held));
+$('mManual').addEventListener('click', () => { stopCam(); setMode('manual'); setStatus(''); });
+$('mTilt').addEventListener('click', () => { if (state.mode !== 'tilt') start(); });
+$('goManual').addEventListener('click', () => setMode('manual'));
+$('go').addEventListener('click', start);
+$('fillIn').addEventListener('input', e => { state.reading = e.target.value; schedule(); });
+function setUnit(u) { state.unit = u; store.set('unit', u); $('uLux').setAttribute('aria-pressed', u === 'lux'); $('uFc').setAttribute('aria-pressed', u === 'fc'); schedule(); }
+$('uLux').addEventListener('click', () => setUnit('lux'));
+$('uFc').addEventListener('click', () => setUnit('fc'));
+const conds = $('conds');
+Object.entries(PRESETS).forEach(([k, p]) => {
+  const b = document.createElement('button'); b.textContent = p.label; b.dataset.k = k;
+  b.addEventListener('click', () => setPreset(k)); conds.appendChild(b);
+});
+function setPreset(k) {
+  state.preset = k; store.set('preset', k);
+  conds.querySelectorAll('button').forEach(b => b.setAttribute('aria-pressed', b.dataset.k === k));
+  $('condDesc').textContent = DESC[k]; paintTape(); schedule();
+}
+$('fMin').value = state.fMin; $('fMax').value = state.fMax;
+function setRange() {
+  const a = parseFloat($('fMin').value), b = parseFloat($('fMax').value);
+  if (a >= 1000 && b > a && b <= 20000) { state.fMin = a; state.fMax = b; store.set('fMin', a); store.set('fMax', b); schedule(); }
+}
+$('fMin').addEventListener('change', setRange); $('fMax').addEventListener('change', setRange);
+
+// ---- Sensors and camera ----
+let stream = null, gotSensor = false, listening = false;
+const D = Math.PI / 180;
+function setStatus(t) { $('status').textContent = t; }
+function stopCam() {
+  if (stream) { stream.getTracks().forEach(t => t.stop()); stream = null; }
+  $('finder').classList.remove('has-cam', 'edge');
+}
+function onOrient(ev) {
+  if (ev.beta == null || state.mode !== 'tilt') return;
+  gotSensor = true;
+  const b = ev.beta * D, g = (ev.gamma || 0) * D;
+  const s = state.sight === 'camera' ? -Math.cos(b) * Math.cos(g) : Math.sin(b);
+  const el = Math.asin(Math.max(-1, Math.min(1, s))) / D;
+  state.raw = state.raw == null ? el : state.raw + 0.18 * (el - state.raw);
+  if (!state.held) { state.elev = state.raw; schedule(); }
+}
+async function start() {
+  setStatus('');
+  const perm = (typeof DeviceOrientationEvent !== 'undefined' && typeof DeviceOrientationEvent.requestPermission === 'function')
+    ? DeviceOrientationEvent.requestPermission().catch(() => 'denied') : Promise.resolve('granted');
+  const cam = (navigator.mediaDevices && navigator.mediaDevices.getUserMedia)
+    ? navigator.mediaDevices.getUserMedia({ video: { facingMode: { ideal: 'environment' } }, audio: false }).catch(() => null)
+    : Promise.resolve(null);
+  const [p, s] = await Promise.all([perm, cam]);
+  $('start').style.display = 'none';
+  if (p !== 'granted') {
+    if (s) s.getTracks().forEach(t => t.stop());
+    setMode('manual');
+    setStatus('Motion access was declined, so set the angle by hand. To allow it later, reload the page.');
+    return;
+  }
+  if (s) {
+    stream = s; const v = $('cam'); v.srcObject = s; try { await v.play(); } catch (e) {}
+    state.sight = 'camera'; $('finder').classList.add('has-cam'); $('finder').classList.remove('edge');
+  } else {
+    state.sight = 'edge'; $('finder').classList.add('edge');
+  }
+  gotSensor = false; state.raw = null;
+  if (!listening) { window.addEventListener('deviceorientation', onOrient); listening = true; }
+  setMode('tilt');
+  setTimeout(() => {
+    if (!gotSensor && state.mode === 'tilt') {
+      stopCam(); setMode('manual');
+      setStatus('This view can’t read the tilt sensor. Set the angle by hand, or open the page directly in Safari.');
+    }
+  }, 1800);
+}
+
+setUnit(state.unit);
+setPreset(state.preset);
+render();
+</script>
+</body></html>
