@@ -444,6 +444,7 @@ function render() {
 // Modes: 'camera' (aim from the subject), 'level' (phone resting on the fixture), 'slider' (by hand)
 const SENSOR_MODES = ['camera', 'level'];
 function setMode(m) {
+  const changed = m !== state.mode;
   state.mode = m;
   $('mCamera').setAttribute('aria-pressed', m === 'camera');
   $('mSlider').setAttribute('aria-pressed', m === 'slider');
@@ -452,7 +453,7 @@ function setMode(m) {
   $('levelset').classList.toggle('on', m === 'level');
   $('finder').classList.toggle('level', m === 'level');
   $('hold').hidden = !SENSOR_MODES.includes(m);
-  if (!SENSOR_MODES.includes(m)) setHeld(false);
+  if (changed || !SENSOR_MODES.includes(m)) setHeld(false);
   if (m !== 'idle') $('start').style.display = 'none';
   if (m === 'slider') $('slider').value = Math.min(90, Math.max(0, state.elev));
   schedule();
@@ -517,7 +518,7 @@ function setRange() {
 $('fMin').addEventListener('change', setRange); $('fMax').addEventListener('change', setRange);
 
 // ---- Sensors and camera ----
-let stream = null, gotSensor = false, listening = false;
+let stream = null, gotSensor = false, listening = false, startId = 0;
 const D = Math.PI / 180;
 function setStatus(t) { $('status').textContent = t; }
 function stopCam() {
@@ -544,6 +545,7 @@ function onOrient(ev) {
   if (!state.held) { state.elev = state.raw; schedule(); }
 }
 async function start(mode) {
+  const id = ++startId;
   setStatus('');
   const perm = (typeof DeviceOrientationEvent !== 'undefined' && typeof DeviceOrientationEvent.requestPermission === 'function')
     ? DeviceOrientationEvent.requestPermission().catch(() => 'denied') : Promise.resolve('granted');
@@ -551,6 +553,7 @@ async function start(mode) {
     ? navigator.mediaDevices.getUserMedia({ video: { facingMode: { ideal: 'environment' } }, audio: false }).catch(() => null)
     : Promise.resolve(null);
   const [p, s] = await Promise.all([perm, cam]);
+  if (id !== startId) { if (s) s.getTracks().forEach(t => t.stop()); return; } // a newer tap took over
   $('start').style.display = 'none';
   if (p !== 'granted') {
     if (s) s.getTracks().forEach(t => t.stop());
@@ -559,6 +562,7 @@ async function start(mode) {
     return;
   }
   stopCam();
+  state.sight = 'camera';
   if (mode === 'level') {
     state.sight = 'level';
   } else if (s) {
@@ -577,6 +581,17 @@ async function start(mode) {
     }
   }, 1800);
 }
+
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState !== 'visible' || state.mode !== 'camera' || state.sight !== 'camera') return;
+  const track = stream && stream.getVideoTracks()[0];
+  if (track && track.readyState === 'live') { $('cam').play().catch(() => {}); return; }
+  const id = startId;
+  navigator.mediaDevices.getUserMedia({ video: { facingMode: { ideal: 'environment' } }, audio: false }).then(s => {
+    if (id !== startId || state.mode !== 'camera') { s.getTracks().forEach(t => t.stop()); return; }
+    stream = s; $('cam').srcObject = s; $('cam').play().catch(() => {});
+  }).catch(() => setStatus('The camera stopped. Tap Camera to restart it.'));
+});
 
 setUnit(state.unit);
 setLv(state.lvOn);
