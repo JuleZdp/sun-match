@@ -47,6 +47,12 @@ button,input{font:inherit;color:inherit}
 .finder.has-cam .cross{display:block}
 .edge-hint{position:absolute;left:50%;top:18px;transform:translateX(-50%);display:none;flex-direction:column;align-items:center;gap:6px;text-align:center;font-size:14px;color:#D9DADD;max-width:70%}
 .finder.edge .edge-hint{display:flex}
+.level-hint{position:absolute;left:18px;right:84px;top:18px;display:none;flex-direction:column;align-items:flex-start;gap:8px;font-size:15px;line-height:1.35;color:#E6E7EA}
+.finder.level .level-hint{display:flex}
+.finder.level .status{top:auto;bottom:118px}
+#phoneBack{display:none}
+.finder.lv-back #phoneTop{display:none}
+.finder.lv-back #phoneBack{display:block}
 .readout{position:absolute;left:18px;bottom:16px;text-shadow:0 1px 3px rgba(0,0,0,.8)}
 .readout .deg{font-family:var(--cond);font-weight:600;font-size:64px;line-height:.9;font-variant-numeric:tabular-nums;letter-spacing:-.01em}
 .readout .sub{font-size:14px;color:#D2D4D8;margin-top:6px}
@@ -77,16 +83,23 @@ button,input{font:inherit;color:inherit}
 .hold[hidden]{display:none}
 .manual{margin-top:12px;display:none;align-items:center;gap:10px}
 .manual.on{display:flex}
+.levelset{margin-top:12px;display:none}
+.levelset.on{display:block}
+.levelset .cond-desc{margin-top:8px}
 .manual input[type=range]{flex:1;accent-color:var(--ink)}
 .step{width:40px;height:36px;border:1px solid var(--line);background:var(--surface);border-radius:8px;font-size:20px;line-height:1}
 
 .light{display:grid;grid-template-columns:52px 1fr;gap:4px 14px;align-items:center;padding:16px 0;border-bottom:1px solid var(--line)}
-.light:first-of-type{margin-top:6px}
-.swatch{grid-row:1 / span 3;width:52px;height:52px;border-radius:50%;box-shadow:inset 0 0 0 1px rgba(0,0,0,.18)}
+.swatch{grid-row:1 / span 4;width:52px;height:52px;border-radius:50%;box-shadow:inset 0 0 0 1px rgba(0,0,0,.18)}
 .light .name{font-size:14px;color:var(--ink-2)}
 .light .k{font-family:var(--cond);font-weight:600;font-size:40px;line-height:1;font-variant-numeric:tabular-nums}
 .light.fill .k{font-size:30px}
 .light .set{font-size:15px}
+.light .real{font-size:14px;color:var(--ink-2)}
+.light .real:empty{display:none}
+.wb{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.wbk{display:flex;align-items:center;gap:6px;font-size:16px}
+.wbk input{width:96px;padding:8px 10px;border:1px solid var(--line);border-radius:8px;background:var(--surface);font-variant-numeric:tabular-nums;font-size:16px}
 .ratio{display:flex;align-items:baseline;gap:12px;padding:16px 0;border-bottom:1px solid var(--line)}
 .ratio .v{font-family:var(--cond);font-weight:600;font-size:34px;font-variant-numeric:tabular-nums;line-height:1}
 .ratio .d{font-size:15px;color:var(--ink-2)}
@@ -107,8 +120,9 @@ details{padding:14px 0;border-bottom:1px solid var(--line)}
 summary{cursor:pointer;font-weight:600;font-size:15px}
 details p{margin:10px 0 0;font-size:15px;color:var(--ink-2);max-width:62ch}
 .range{display:flex;align-items:center;gap:8px;margin-top:10px;font-size:15px}
-.range input{width:84px;padding:7px 8px;border:1px solid var(--line);border-radius:8px;background:var(--surface);font-variant-numeric:tabular-nums}
+.range input{width:84px;font-size:16px;padding:7px 8px;border:1px solid var(--line);border-radius:8px;background:var(--surface);font-variant-numeric:tabular-nums}
 .ref{font-variant-numeric:tabular-nums}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
 @media (min-height:820px){.finder{flex-basis:50%}}
 </style>
 </head>
@@ -128,6 +142,17 @@ details p{margin:10px 0 0;font-size:15px;color:var(--ink-2);max-width:62ch}
       <svg width="28" height="34" viewBox="0 0 28 34" aria-hidden="true"><path d="M14 2 L14 32 M4 12 L14 2 L24 12" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
       <span>Point the top edge of the phone at the fixture</span>
     </div>
+    <div class="level-hint" id="levelHint">
+      <svg width="132" height="78" viewBox="0 0 132 78" aria-hidden="true">
+        <g transform="rotate(20 56 40)">
+          <polygon points="80,31 80,49 124,60 124,20" fill="#fff" opacity=".14"/>
+          <rect x="34" y="29" width="46" height="22" rx="3" fill="none" stroke="#fff" stroke-width="2"/>
+          <rect id="phoneTop" x="38" y="21" width="38" height="5" rx="2" fill="#fff"/>
+          <rect id="phoneBack" x="25" y="21" width="5" height="38" rx="2" fill="#fff"/>
+        </g>
+      </svg>
+      <span id="levelHintText"></span>
+    </div>
     <div class="status" id="status" role="status"></div>
     <div class="readout">
       <div class="deg" id="deg">30.0°</div>
@@ -136,8 +161,9 @@ details p{margin:10px 0 0;font-size:15px;color:var(--ink-2);max-width:62ch}
     <div class="tape" id="tape" aria-hidden="true"><div class="bar" id="bar"></div><div class="mark" id="mark"></div></div>
     <div class="start" id="start">
       <p>Stand where your subject is and aim the crosshair at the fixture playing the sun.</p>
-      <button class="btn-primary" id="go">Start camera and tilt</button>
-      <button class="btn-text" id="goManual">Enter an angle instead</button>
+      <button class="btn-primary" id="go">Start camera</button>
+      <button class="btn-text" id="goLevel">Rest the phone on the fixture instead</button>
+      <button class="btn-text" id="goSlider">Use the slider instead</button>
       <p class="note">Your phone will ask for camera and motion access.</p>
     </div>
   </section>
@@ -145,8 +171,9 @@ details p{margin:10px 0 0;font-size:15px;color:var(--ink-2);max-width:62ch}
   <section class="panel">
     <div class="row">
       <div class="seg" role="group" aria-label="Angle source">
-        <button id="mTilt" aria-pressed="false">Tilt</button>
-        <button id="mManual" aria-pressed="false">By hand</button>
+        <button id="mCamera" aria-pressed="false">Camera</button>
+        <button id="mSlider" aria-pressed="false">Slider</button>
+        <button id="mLevel" aria-pressed="false">Level</button>
       </div>
       <button class="hold" id="hold" aria-pressed="false" hidden>Hold</button>
     </div>
@@ -156,23 +183,45 @@ details p{margin:10px 0 0;font-size:15px;color:var(--ink-2);max-width:62ch}
       <button class="step" id="plus" aria-label="Raise one degree">+</button>
     </div>
 
+    <div class="levelset" id="levelset">
+      <div class="seg" role="group" aria-label="Where the phone rests">
+        <button id="lvTop" aria-pressed="true">On top</button>
+        <button id="lvBack" aria-pressed="false">On the back</button>
+      </div>
+      <div class="cond-desc">Assumes the fixture is aimed straight at your subject.</div>
+    </div>
+
     <div class="light sun">
       <div class="swatch" id="sunSw"></div>
-      <div class="name">Sun</div>
+      <div class="name" id="sunName">Sun</div>
       <div class="k" id="sunK">–</div>
       <div class="set" id="sunSet"></div>
+      <div class="real" id="sunReal"></div>
     </div>
     <div class="light fill">
       <div class="swatch" id="fillSw"></div>
-      <div class="name">Open shade</div>
+      <div class="name" id="fillName">Open shade</div>
       <div class="k" id="fillK">–</div>
       <div class="set" id="fillSet"></div>
+      <div class="real" id="fillReal"></div>
     </div>
     <div class="ratio">
       <div class="v" id="stops">–</div>
       <div class="d">Sun side over shade side</div>
     </div>
     <div class="warn" id="warn"></div>
+
+    <div class="block">
+      <h2>Camera white balance</h2>
+      <div class="wb">
+        <div class="seg" role="group" aria-label="White balance mode">
+          <button id="wbAbs" aria-pressed="true">Absolute</button>
+          <button id="wbRel" aria-pressed="false">Relative</button>
+        </div>
+        <label class="wbk"><input id="camWB" type="number" inputmode="numeric" min="2000" max="10000" step="50" aria-label="Camera white balance in Kelvin"> K</label>
+      </div>
+      <div class="cond-desc" id="wbDesc"></div>
+    </div>
 
     <div class="block">
       <h2>Match it with your meter</h2>
@@ -192,7 +241,6 @@ details p{margin:10px 0 0;font-size:15px;color:var(--ink-2);max-width:62ch}
       <div class="seg wide" role="group" aria-label="Conditions" id="conds"></div>
       <div class="cond-desc" id="condDesc"></div>
     </div>
-
     <details>
       <summary>On a real day like this</summary>
       <p class="ref" id="ref"></p>
@@ -208,11 +256,11 @@ details p{margin:10px 0 0;font-size:15px;color:var(--ink-2);max-width:62ch}
     <details>
       <summary>How this is calculated</summary>
       <p>The sun starts as a roughly 5,900K source above the atmosphere. At lower angles its light passes through more air, which scatters blue out of the beam and warms it. Haze adds more scattering and also brightens the sky. Open shade is skylight plus light bounced off average ground (15% reflectance), measured on the side facing away from the sun.</p>
-      <p>Values assume sea level and are rounded to 50K. Treat them as a starting point: real days vary, most of all within 5° of the horizon. Swatches show each colour as a camera balanced at 5,600K would see it.</p>
+      <p>Values assume sea level and are rounded to 50K. Treat them as a starting point: real days vary, most of all within 5° of the horizon. Swatches show how each light will look in camera.</p>
+      <p>Relative mode moves both lights by the same amount in mireds (1,000,000 ÷ Kelvin), the scale cameras and gels use, so equal steps look equally different. That keeps the warm sun and cool shade the same distance apart.</p>
     </details>
   </section>
 </div>
-<style>.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}</style>
 <script>
 // ---- Sun/sky spectral model ----
 const L = []; for (let l = 380; l <= 780; l += 5) L.push(l);
@@ -265,10 +313,17 @@ function solve(h, p) {
 const MB = [[0.8951,0.2664,-0.1614],[-0.7502,1.7135,0.0367],[0.0389,-0.0685,1.0296]];
 const MBi = [[0.9869929,-0.1470543,0.1599627],[0.4323053,0.5183603,0.0492912],[-0.0085287,0.0400428,0.9684867]];
 const mul = (M, v) => M.map(r => r[0]*v[0] + r[1]*v[1] + r[2]*v[2]);
-const WB = (() => { const w = XYZ(L.map(l => planck(l, 5600))); return w.map(c => c / w[1]); })();
-const D65 = [0.95047, 1, 1.08883];
-const CS = mul(MB, WB), CD = mul(MB, D65);
-function toCss(xyz) {
+const D65 = [0.95047, 1, 1.08883], CD = mul(MB, D65), WBC = {};
+function wbCone(k) {
+  if (!WBC[k]) { const w = XYZ(L.map(l => planck(l, k))); WBC[k] = mul(MB, w.map(c => c / w[1])); }
+  return WBC[k];
+}
+// Real light as seen in camera: at the camera's white balance in Absolute mode,
+// and at the 5,600K reference in Relative mode (the look Relative preserves).
+const REF_WB = 5600;
+const displayWB = () => state.wbMode === 'relative' ? REF_WB : state.camWB;
+function toCss(xyz, wbK = displayWB()) {
+  const CS = wbCone(wbK);
   const n = xyz.map(c => c / xyz[1]);
   const c = mul(MB, n).map((v, i) => v * CD[i] / CS[i]);
   let rgb = mul([[3.2406,-1.5372,-0.4986],[-0.9689,1.8758,0.0415],[0.0557,-0.2040,1.0570]], mul(MBi, c));
@@ -287,6 +342,8 @@ function gelFor(shift, list) {
   c.sort((a, b) => (Math.abs(a.s - shift) + (a.n - 1) * 8) - (Math.abs(b.s - shift) + (b.n - 1) * 8));
   return c[0];
 }
+// Same in-camera look on a camera at camWB as real light on a 5,600K camera: shift in mireds.
+const rel = k => state.wbMode === 'relative' ? 1e6 / (1e6 / k - 1e6 / REF_WB + 1e6 / state.camWB) : k;
 const fmtK = k => k < 1200 ? 'below 1,200K' : (Math.round(k / 50) * 50).toLocaleString('en-US') + 'K';
 function advice(k) {
   const lo = state.fMin, hi = state.fMax;
@@ -311,12 +368,16 @@ const store = {
   get(k, d) { try { const v = localStorage.getItem('sunmatch:' + k); return v == null ? d : JSON.parse(v); } catch (e) { return d; } },
   set(k, v) { try { localStorage.setItem('sunmatch:' + k, JSON.stringify(v)); } catch (e) {} }
 };
+const num = (v, lo, hi, d) => (typeof v === 'number' && isFinite(v) && v >= lo && v <= hi) ? v : d;
 const state = {
-  mode: 'idle', sight: 'camera', elev: store.get('elev', 30), raw: null, held: false,
-  preset: store.get('preset', 'clear'), fMin: store.get('fMin', 2700), fMax: store.get('fMax', 6500),
-  unit: store.get('unit', 'lux'), reading: ''
+  mode: 'idle', sight: 'camera', elev: num(store.get('elev', 30), 0, 90, 30), raw: null, held: false,
+  preset: store.get('preset', 'clear'), fMin: num(store.get('fMin', 2700), 1000, 20000, 2700), fMax: num(store.get('fMax', 6500), 1000, 20000, 6500),
+  unit: store.get('unit', 'lux') === 'fc' ? 'fc' : 'lux', reading: '',
+  wbMode: store.get('wbMode', 'absolute'), camWB: num(store.get('camWB', 5600), 2000, 10000, 5600),
+  lvOn: store.get('lvOn', 'top') === 'back' ? 'back' : 'top'
 };
 if (!PRESETS[state.preset]) state.preset = 'clear';
+if (state.fMax <= state.fMin) { state.fMin = 2700; state.fMax = 6500; }
 const DESC = {
   crisp: 'Deep blue sky, distant hills sharp. After rain or during Santa Anas.',
   clear: 'An ordinary sunny day with a little haze on the horizon.',
@@ -343,17 +404,26 @@ function render() {
   pending = false;
   const e = state.elev, below = e < 0;
   $('deg').textContent = (Math.round(e * 10) / 10).toFixed(1) + '°';
-  $('degSub').textContent = below ? 'below level' : 'above level';
+  $('degSub').textContent = state.mode === 'level' ? 'fixture tilted down' : below ? 'below level' : 'above level';
   const r = solve(e, PRESETS[state.preset]);
   const sunCss = toCss(r.sunXYZ);
   $('mark').style.bottom = (Math.min(90, Math.max(0, e)) / 90 * 100) + '%';
   $('mark').style.background = sunCss;
   $('sunSw').style.background = sunCss;
   $('fillSw').style.background = toCss(r.fillXYZ);
-  $('sunK').textContent = fmtK(r.sunK);
-  $('fillK').textContent = fmtK(r.fillK);
-  $('sunSet').textContent = advice(r.sunK);
-  $('fillSet').textContent = advice(r.fillK);
+  const relOn = state.wbMode === 'relative', sunT = rel(r.sunK), fillT = rel(r.fillK);
+  const camTxt = fmtK(state.camWB);
+  $('sunName').textContent = relOn ? `Sun, matched to a ${camTxt} camera` : 'Sun';
+  $('fillName').textContent = relOn ? `Open shade, matched to a ${camTxt} camera` : 'Open shade';
+  $('sunK').textContent = fmtK(sunT);
+  $('fillK').textContent = fmtK(fillT);
+  $('sunSet').textContent = advice(sunT);
+  $('fillSet').textContent = advice(fillT);
+  $('sunReal').textContent = relOn ? `Real sun ≈ ${fmtK(r.sunK)}` : '';
+  $('fillReal').textContent = relOn ? `Real shade ≈ ${fmtK(r.fillK)}` : '';
+  $('wbDesc').textContent = relOn
+    ? `Kelvin to set so the light looks in camera at ${camTxt} the way real sun looks at 5,600K.`
+    : `Real Kelvin values. Swatches show how they’ll look on a camera set to ${camTxt}.`;
   $('stops').textContent = r.stops.toFixed(1) + (Math.abs(r.stops - 1) < 0.05 ? ' stop' : ' stops');
   let w = '';
   if (below) w = 'The fixture is below the subject’s eye line. A real sun can’t light from there, so values are shown for the horizon.';
@@ -371,14 +441,20 @@ function render() {
 }
 
 // ---- Controls ----
+// Modes: 'camera' (aim from the subject), 'level' (phone resting on the fixture), 'slider' (by hand)
+const SENSOR_MODES = ['camera', 'level'];
 function setMode(m) {
   state.mode = m;
-  $('mTilt').setAttribute('aria-pressed', m === 'tilt');
-  $('mManual').setAttribute('aria-pressed', m === 'manual');
-  $('manual').classList.toggle('on', m === 'manual');
-  $('hold').hidden = m !== 'tilt';
-  if (m !== 'tilt') setHeld(false);
-  if (m === 'manual') { $('slider').value = Math.min(90, Math.max(0, state.elev)); $('start').style.display = 'none'; }
+  $('mCamera').setAttribute('aria-pressed', m === 'camera');
+  $('mSlider').setAttribute('aria-pressed', m === 'slider');
+  $('mLevel').setAttribute('aria-pressed', m === 'level');
+  $('manual').classList.toggle('on', m === 'slider');
+  $('levelset').classList.toggle('on', m === 'level');
+  $('finder').classList.toggle('level', m === 'level');
+  $('hold').hidden = !SENSOR_MODES.includes(m);
+  if (!SENSOR_MODES.includes(m)) setHeld(false);
+  if (m !== 'idle') $('start').style.display = 'none';
+  if (m === 'slider') $('slider').value = Math.min(90, Math.max(0, state.elev));
   schedule();
 }
 function setHeld(h) {
@@ -390,10 +466,22 @@ $('slider').addEventListener('input', e => setManual(parseFloat(e.target.value))
 $('minus').addEventListener('click', () => setManual(Math.round(state.elev) - 1));
 $('plus').addEventListener('click', () => setManual(Math.round(state.elev) + 1));
 $('hold').addEventListener('click', () => setHeld(!state.held));
-$('mManual').addEventListener('click', () => { stopCam(); setMode('manual'); setStatus(''); });
-$('mTilt').addEventListener('click', () => { if (state.mode !== 'tilt') start(); });
-$('goManual').addEventListener('click', () => setMode('manual'));
-$('go').addEventListener('click', start);
+$('mSlider').addEventListener('click', () => { stopCam(); setMode('slider'); setStatus(''); });
+$('mCamera').addEventListener('click', () => { if (state.mode !== 'camera') start('camera'); });
+$('mLevel').addEventListener('click', () => { if (state.mode !== 'level') start('level'); });
+$('goSlider').addEventListener('click', () => setMode('slider'));
+$('goLevel').addEventListener('click', () => start('level'));
+$('go').addEventListener('click', () => start('camera'));
+function setLv(k) {
+  state.lvOn = k; store.set('lvOn', k); state.raw = null;
+  $('lvTop').setAttribute('aria-pressed', k === 'top'); $('lvBack').setAttribute('aria-pressed', k === 'back');
+  $('finder').classList.toggle('lv-back', k === 'back');
+  $('levelHintText').textContent = k === 'top'
+    ? 'Lay the phone flat on top of the fixture. Any direction works.'
+    : 'Hold the phone flat against the back of the fixture.';
+}
+$('lvTop').addEventListener('click', () => setLv('top'));
+$('lvBack').addEventListener('click', () => setLv('back'));
 $('fillIn').addEventListener('input', e => { state.reading = e.target.value; schedule(); });
 function setUnit(u) { state.unit = u; store.set('unit', u); $('uLux').setAttribute('aria-pressed', u === 'lux'); $('uFc').setAttribute('aria-pressed', u === 'fc'); schedule(); }
 $('uLux').addEventListener('click', () => setUnit('lux'));
@@ -408,6 +496,19 @@ function setPreset(k) {
   conds.querySelectorAll('button').forEach(b => b.setAttribute('aria-pressed', b.dataset.k === k));
   $('condDesc').textContent = DESC[k]; paintTape(); schedule();
 }
+function setWbMode(m) {
+  state.wbMode = m; store.set('wbMode', m);
+  $('wbAbs').setAttribute('aria-pressed', m === 'absolute'); $('wbRel').setAttribute('aria-pressed', m === 'relative');
+  paintTape(); schedule();
+}
+$('wbAbs').addEventListener('click', () => setWbMode('absolute'));
+$('wbRel').addEventListener('click', () => setWbMode('relative'));
+$('camWB').value = state.camWB;
+$('camWB').addEventListener('change', e => {
+  const v = Math.round(parseFloat(e.target.value));
+  if (v >= 2000 && v <= 10000) { state.camWB = v; store.set('camWB', v); paintTape(); schedule(); }
+  e.target.value = state.camWB;
+});
 $('fMin').value = state.fMin; $('fMax').value = state.fMax;
 function setRange() {
   const a = parseFloat($('fMin').value), b = parseFloat($('fMax').value);
@@ -424,30 +525,43 @@ function stopCam() {
   $('finder').classList.remove('has-cam', 'edge');
 }
 function onOrient(ev) {
-  if (ev.beta == null || state.mode !== 'tilt') return;
+  if (ev.beta == null || !SENSOR_MODES.includes(state.mode)) return;
   gotSensor = true;
   const b = ev.beta * D, g = (ev.gamma || 0) * D;
-  const s = state.sight === 'camera' ? -Math.cos(b) * Math.cos(g) : Math.sin(b);
-  const el = Math.asin(Math.max(-1, Math.min(1, s))) / D;
+  const cz = Math.cos(b) * Math.cos(g); // how much the screen faces straight up (1) or down (-1)
+  let el;
+  if (state.mode === 'level') {
+    // Phone flat on a surface. On top: the surface runs along the beam, so its tilt from
+    // horizontal is the beam's downward angle. On the back: the surface faces along the beam,
+    // so the beam's angle is 90° minus that tilt. Works whichever way the phone is turned.
+    const z = Math.min(1, Math.abs(cz));
+    el = (state.lvOn === 'top' ? Math.acos(z) : Math.asin(z)) / D;
+  } else {
+    const s = state.sight === 'camera' ? -cz : Math.sin(b);
+    el = Math.asin(Math.max(-1, Math.min(1, s))) / D;
+  }
   state.raw = state.raw == null ? el : state.raw + 0.18 * (el - state.raw);
   if (!state.held) { state.elev = state.raw; schedule(); }
 }
-async function start() {
+async function start(mode) {
   setStatus('');
   const perm = (typeof DeviceOrientationEvent !== 'undefined' && typeof DeviceOrientationEvent.requestPermission === 'function')
     ? DeviceOrientationEvent.requestPermission().catch(() => 'denied') : Promise.resolve('granted');
-  const cam = (navigator.mediaDevices && navigator.mediaDevices.getUserMedia)
+  const cam = (mode === 'camera' && navigator.mediaDevices && navigator.mediaDevices.getUserMedia)
     ? navigator.mediaDevices.getUserMedia({ video: { facingMode: { ideal: 'environment' } }, audio: false }).catch(() => null)
     : Promise.resolve(null);
   const [p, s] = await Promise.all([perm, cam]);
   $('start').style.display = 'none';
   if (p !== 'granted') {
     if (s) s.getTracks().forEach(t => t.stop());
-    setMode('manual');
-    setStatus('Motion access was declined, so set the angle by hand. To allow it later, reload the page.');
+    stopCam(); setMode('slider');
+    setStatus('Motion access was declined, so use the slider. To allow it later, reload the page.');
     return;
   }
-  if (s) {
+  stopCam();
+  if (mode === 'level') {
+    state.sight = 'level';
+  } else if (s) {
     stream = s; const v = $('cam'); v.srcObject = s; try { await v.play(); } catch (e) {}
     state.sight = 'camera'; $('finder').classList.add('has-cam'); $('finder').classList.remove('edge');
   } else {
@@ -455,16 +569,18 @@ async function start() {
   }
   gotSensor = false; state.raw = null;
   if (!listening) { window.addEventListener('deviceorientation', onOrient); listening = true; }
-  setMode('tilt');
+  setMode(mode);
   setTimeout(() => {
-    if (!gotSensor && state.mode === 'tilt') {
-      stopCam(); setMode('manual');
-      setStatus('This view can’t read the tilt sensor. Set the angle by hand, or open the page directly in Safari.');
+    if (!gotSensor && state.mode === mode) {
+      stopCam(); setMode('slider');
+      setStatus('This view can’t read the tilt sensor. Use the slider, or open the page directly in Safari.');
     }
   }, 1800);
 }
 
 setUnit(state.unit);
+setLv(state.lvOn);
+setWbMode(state.wbMode === 'relative' ? 'relative' : 'absolute');
 setPreset(state.preset);
 render();
 </script>
